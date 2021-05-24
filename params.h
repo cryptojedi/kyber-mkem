@@ -9,23 +9,11 @@
 
 /* Don't change parameters below this line */
 #if   (KYBER_K == 2)
-#ifdef KYBER_90S
-#define KYBER_NAMESPACE(s) pqcrystals_mkyber512_90s_ref_##s
-#else
 #define KYBER_NAMESPACE(s) pqcrystals_mkyber512_ref_##s
-#endif
 #elif (KYBER_K == 3)
-#ifdef KYBER_90S
-#define KYBER_NAMESPACE(s) pqcrystals_mkyber768_90s_ref_##s
-#else
 #define KYBER_NAMESPACE(s) pqcrystals_mkyber768_ref_##s
-#endif
 #elif (KYBER_K == 4)
-#ifdef KYBER_90S
-#define KYBER_NAMESPACE(s) pqcrystals_mkyber1024_90s_ref_##s
-#else
 #define KYBER_NAMESPACE(s) pqcrystals_mkyber1024_ref_##s
-#endif
 #else
 #error "KYBER_K must be in {2,3,4}"
 #endif
