@@ -1,6 +1,8 @@
+#include <string.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+
 #include "params.h"
 #include "mkem.h"
 #include "indcpa.h"
@@ -37,6 +39,10 @@ int crypto_mkem_keypair(uint8_t *pk, uint8_t *sk, const uint8_t *seed)
   sk += MKYBER_INDCPA_PUBLICKEYBYTES;
   for(i=0;i<KYBER_SYMBYTES;i++)
     sk[i] = seed[i];
+  sk += KYBER_SYMBYTES;
+
+  /* Value z for pseud-random output on reject (implicit rejection) */
+  randombytes(sk, KYBER_SYMBYTES);
 
   return 0;
 }
@@ -49,7 +55,7 @@ int crypto_mkem_keypair(uint8_t *pk, uint8_t *sk, const uint8_t *seed)
 * Arguments:   - uint8_t *c1: pointer to output first ciphertext component
 *                (an already allocated array of MKYBER_C1BYTES bytes)
 *              - uint8_t *ss: pointer to output shared key
-*                (an already allocated array of MKYBER_SYMBYTES bytes)
+*                (an already allocated array of KYBER_SYMBYTES bytes)
 *              - const uint8_t *seed: pointer to the input public seed, which
 *                needs to be of length KYBER_SYMBYTES and generated beforehand
 *              - const uint8_t *r: pointer to input random coins;
@@ -116,7 +122,7 @@ int crypto_mkem_enc_c2(uint8_t *c2,
 *              - uint8_t *c2: pointer to output second ciphertext components
 *                (an array of num_key pointers, each to an allocated array of MKYBER_C2BYTES bytes)
 *              - uint8_t *ss: pointer to output shared key
-*                (an already allocated array of MKYBER_SYMBYTES bytes)
+*                (an already allocated array of KYBER_SYMBYTES bytes)
 *              - const uint8_t *seed: pointer to the input public seed, which
 *                needs to be of length KYBER_SYMBYTES and generated beforehand
 *              - size_t num_keys: input batch size
@@ -160,7 +166,7 @@ int crypto_mkem_enc(uint8_t *c1,
 * Description: Generates a batch of ciphertexts all with the same first component c1
 *
 * Arguments:   - uint8_t *ss: pointer to output shared key
-*                (an already allocated array of MKYBER_SYMBYTES bytes)
+*                (an already allocated array of KYBER_SYMBYTES bytes)
 *              - const uint8_t *c1: pointer to input first ciphertext component
 *                (an array of MKYBER_C1BYTES bytes)
 *              - const uint8_t *c2: pointer to input second ciphertext component
@@ -181,8 +187,10 @@ int crypto_mkem_dec(uint8_t *ss,
   uint8_t kr[2*KYBER_SYMBYTES];
   uint8_t cmp1[MKYBER_C1BYTES];
   uint8_t cmp2[MKYBER_C2BYTES];
+  uint8_t cbuf[KYBER_SYMBYTES+MKYBER_C1BYTES+MKYBER_C2BYTES];
   const uint8_t *pk   = sk+MKYBER_INDCPA_SECRETKEYBYTES;
   const uint8_t *seed = pk+MKYBER_INDCPA_PUBLICKEYBYTES;
+  const uint8_t *z = sk+ MKYBER_INDCPA_SECRETKEYBYTES + MKYBER_INDCPA_PUBLICKEYBYTES + KYBER_SYMBYTES;
 
   indcpa_dec(buf, c1, c2, sk);
 
@@ -194,11 +202,12 @@ int crypto_mkem_dec(uint8_t *ss,
 
   fail  = verify(c1, cmp1, MKYBER_C1BYTES);
   fail |= verify(c2, cmp2, MKYBER_C2BYTES);
-
-  /* Write random bytes to buf */
-  randombytes(ss, KYBER_SYMBYTES);
-  /* Don't release system RNG output */
-  hash_h(ss, ss, KYBER_SYMBYTES);
+  
+  /* Compute pseudorandom "rejection key" as H(z|c1|c2) */
+  memcpy(cbuf, z, KYBER_SYMBYTES);
+  memcpy(cbuf+KYBER_SYMBYTES, c1, MKYBER_C1BYTES);
+  memcpy(cbuf+KYBER_SYMBYTES+MKYBER_C1BYTES, c2, MKYBER_C2BYTES);
+  hash_h(ss,cbuf,KYBER_SYMBYTES+MKYBER_C1BYTES+MKYBER_C2BYTES);
 
   /* Overwrite randomness with shared key if re-encryption was successful */
   cmov(ss, kr, KYBER_SYMBYTES, 1-fail);
