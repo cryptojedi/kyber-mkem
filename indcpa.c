@@ -237,10 +237,10 @@ void indcpa_enc_c2(uint8_t c2[MKYBER_C2BYTES],
     poly_getnoise_eta1(sp.vec+i, coins, nonce++);
   polyvec_ntt(&sp);
 
-  /* XXX: compute public-key dependent coins here */
-  memcpy(buf,msg,KYBER_INDCPA_MSGBYTES);
-  memcpy(buf+KYBER_INDCPA_MSGBYTES,pk,MKYBER_INDCPA_PUBLICKEYBYTES);
-  hash_h(coins, buf, KYBER_INDCPA_MSGBYTES+MKYBER_INDCPA_PUBLICKEYBYTES);
+  /* Compute public-key dependent coins */
+  memcpy(buf,pk,MKYBER_INDCPA_PUBLICKEYBYTES);
+  memcpy(buf+MKYBER_INDCPA_PUBLICKEYBYTES,msg,KYBER_INDCPA_MSGBYTES);
+  hash_h(coins, buf, MKYBER_INDCPA_PUBLICKEYBYTES+KYBER_INDCPA_MSGBYTES);
   poly_getnoise_eta2(&epp, coins, nonce);
 
   unpack_pk(&pkpv, pk);

@@ -1,6 +1,6 @@
-CC ?= /usr/bin/cc
+CC = /usr/bin/clang
 CFLAGS += -Wall -Wextra -Wpedantic -Wmissing-prototypes -Wredundant-decls \
-  -Wshadow -Wpointer-arith -O3 -fomit-frame-pointer
+  -Wshadow -Wpointer-arith -O3 -fomit-frame-pointer -fsanitize=address -fsanitize=undefined
 NISTFLAGS += -Wno-unused-result -O3 -fomit-frame-pointer
 RM = /bin/rm
 
