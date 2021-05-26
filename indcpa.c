@@ -218,9 +218,6 @@ void indcpa_enc_c1(uint8_t c1[MKYBER_C1BYTES],
 *                                  (of length KYBER_INDCPA_MSGBYTES bytes)
 *              - const uint8_t *pk: pointer to input public key
 *                                   (of length MKYBER_INDCPA_PUBLICKEYBYTES bytes)
-*              - const uint8_t *coins: pointer to input random coins used as seed
-*                                      (of length KYBER_SYMBYTES) to deterministically
-*                                      generate all randomness
 **************************************************/
 void indcpa_enc_c2(uint8_t c2[MKYBER_C2BYTES],
                    const uint8_t msg[KYBER_INDCPA_MSGBYTES],
