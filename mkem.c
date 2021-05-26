@@ -55,7 +55,7 @@ int crypto_mkem_keypair(uint8_t *pk, uint8_t *sk, const uint8_t *seed)
 * Arguments:   - uint8_t *c1: pointer to output first ciphertext component
 *                (an already allocated array of MKYBER_C1BYTES bytes)
 *              - uint8_t *ss: pointer to output shared key
-*                (an already allocated array of KYBER_SYMBYTES bytes)
+*                (an already allocated array of KYBER_SSBYTES bytes)
 *              - const uint8_t *seed: pointer to the input public seed, which
 *                needs to be of length KYBER_SYMBYTES and generated beforehand
 *              - const uint8_t *r: pointer to input random coins;
@@ -68,17 +68,17 @@ int crypto_mkem_enc_c1(uint8_t *c1,
                        const uint8_t *seed,
                        const uint8_t *r)
 {
-  uint8_t buf[KYBER_SYMBYTES];
-  uint8_t kr[2*KYBER_SYMBYTES];
-  size_t i;
+  uint8_t msg[KYBER_SYMBYTES];
+  uint8_t coins[KYBER_SYMBYTES];
 
   /* Don't release system RNG output */
-  hash_h(buf, r, KYBER_SYMBYTES);
-  /* Hash buf to shared key and coins */
-  hash_g(kr, buf, KYBER_SYMBYTES);
-  for(i=0;i<KYBER_SYMBYTES;i++) ss[i] = kr[i];
-
-  indcpa_enc_c1(c1, seed, kr+KYBER_SYMBYTES);
+  hash_h(msg, r, KYBER_SYMBYTES);
+  /* Hash msg to coins common to all ciphertexts */
+  hash_h(coins, msg, KYBER_SYMBYTES);
+  /* Compute shared key as KDF(msg) */
+  kdf(ss, msg, KYBER_SYMBYTES);
+  /* Compute public-key independent part of ciphertext */
+  indcpa_enc_c1(c1, seed, coins);
   return 0;
 }
 
@@ -100,15 +100,12 @@ int crypto_mkem_enc_c2(uint8_t *c2,
                        const uint8_t *pk,
                        const uint8_t *r)
 {
-  uint8_t buf[KYBER_SYMBYTES];
-  uint8_t kr[2*KYBER_SYMBYTES];
+  uint8_t msg[KYBER_SYMBYTES];
 
   /* Don't release system RNG output */
-  hash_h(buf, r, KYBER_SYMBYTES);
-  /* Hash buf to shared key and coins */
-  hash_g(kr, buf, KYBER_SYMBYTES);
+  hash_h(msg, r, KYBER_SYMBYTES);
 
-  indcpa_enc_c2(c2, buf, pk, kr+KYBER_SYMBYTES);
+  indcpa_enc_c2(c2, msg, pk);
   return 0;
 }
 
@@ -122,7 +119,7 @@ int crypto_mkem_enc_c2(uint8_t *c2,
 *              - uint8_t *c2: pointer to output second ciphertext components
 *                (an array of num_key pointers, each to an allocated array of MKYBER_C2BYTES bytes)
 *              - uint8_t *ss: pointer to output shared key
-*                (an already allocated array of KYBER_SYMBYTES bytes)
+*                (an already allocated array of KYBER_SSBYTES bytes)
 *              - const uint8_t *seed: pointer to the input public seed, which
 *                needs to be of length KYBER_SYMBYTES and generated beforehand
 *              - size_t num_keys: input batch size
@@ -138,24 +135,24 @@ int crypto_mkem_enc(uint8_t *c1,
                     size_t num_keys,
                     uint8_t *const* pk)
 {
-  uint8_t buf[KYBER_SYMBYTES];
+  uint8_t msg[KYBER_SYMBYTES];
   /* Will contain key, coins */
-  uint8_t kr[2*KYBER_SYMBYTES];
+  uint8_t coins[KYBER_SYMBYTES];
   size_t i;
 
-  randombytes(buf, KYBER_SYMBYTES);
+  randombytes(msg, KYBER_SYMBYTES);
   /* Don't release system RNG output */
-  hash_h(buf, buf, KYBER_SYMBYTES);
+  hash_h(msg, msg, KYBER_SYMBYTES);
+  /* Hash msg to coins common to all ciphertexts */
+  hash_h(coins, msg, KYBER_SYMBYTES);
+  /* Compute shared key as KDF(msg) */
+  kdf(ss, msg, KYBER_SYMBYTES);
 
-  /* Hash buf to shared key and coins */
-  hash_g(kr, buf, KYBER_SYMBYTES);
-  for(i=0;i<KYBER_SYMBYTES;i++) ss[i] = kr[i];
-  
-  indcpa_enc_c1(c1, seed, kr+KYBER_SYMBYTES);
+  indcpa_enc_c1(c1, seed, coins);
 
   for(i=0;i<num_keys;i++)
   {
-    indcpa_enc_c2(c2s[i], buf, pk[i], kr+KYBER_SYMBYTES);
+    indcpa_enc_c2(c2s[i], msg, pk[i]);
   }
   return 0;
 }
@@ -166,7 +163,7 @@ int crypto_mkem_enc(uint8_t *c1,
 * Description: Generates a batch of ciphertexts all with the same first component c1
 *
 * Arguments:   - uint8_t *ss: pointer to output shared key
-*                (an already allocated array of KYBER_SYMBYTES bytes)
+*                (an already allocated array of KYBER_SSBYTES bytes)
 *              - const uint8_t *c1: pointer to input first ciphertext component
 *                (an array of MKYBER_C1BYTES bytes)
 *              - const uint8_t *c2: pointer to input second ciphertext component
@@ -182,35 +179,38 @@ int crypto_mkem_dec(uint8_t *ss,
                     const uint8_t *sk)
 {
   int fail;
-  uint8_t buf[KYBER_SYMBYTES];
+  uint8_t msg[KYBER_SYMBYTES];
   /* Will contain key, coins */
-  uint8_t kr[2*KYBER_SYMBYTES];
+  uint8_t t[KYBER_SYMBYTES];
+  uint8_t coins[KYBER_SYMBYTES];
   uint8_t cmp1[MKYBER_C1BYTES];
   uint8_t cmp2[MKYBER_C2BYTES];
-  uint8_t cbuf[KYBER_SYMBYTES+MKYBER_C1BYTES+MKYBER_C2BYTES];
+  uint8_t buf[KYBER_SYMBYTES+MKYBER_C1BYTES+MKYBER_C2BYTES];
   const uint8_t *pk   = sk+MKYBER_INDCPA_SECRETKEYBYTES;
   const uint8_t *seed = pk+MKYBER_INDCPA_PUBLICKEYBYTES;
   const uint8_t *z = sk+ MKYBER_INDCPA_SECRETKEYBYTES + MKYBER_INDCPA_PUBLICKEYBYTES + KYBER_SYMBYTES;
 
-  indcpa_dec(buf, c1, c2, sk);
+  indcpa_dec(msg, c1, c2, sk);
 
-  hash_g(kr, buf, KYBER_SYMBYTES);
+  /* Compute shared key as KDF(msg) */
+  kdf(t, msg, KYBER_SYMBYTES);
 
-  /* coins are in kr+KYBER_SYMBYTES */
-  indcpa_enc_c1(cmp1, seed, kr+KYBER_SYMBYTES);
-  indcpa_enc_c2(cmp2, buf, pk, kr+KYBER_SYMBYTES);
+  /* Re-encrypt */
+  hash_h(coins, msg, KYBER_SYMBYTES);
+  indcpa_enc_c1(cmp1, seed, coins);
+  indcpa_enc_c2(cmp2, msg, pk);
 
   fail  = verify(c1, cmp1, MKYBER_C1BYTES);
   fail |= verify(c2, cmp2, MKYBER_C2BYTES);
   
   /* Compute pseudorandom "rejection key" as H(z|c1|c2) */
-  memcpy(cbuf, z, KYBER_SYMBYTES);
-  memcpy(cbuf+KYBER_SYMBYTES, c1, MKYBER_C1BYTES);
-  memcpy(cbuf+KYBER_SYMBYTES+MKYBER_C1BYTES, c2, MKYBER_C2BYTES);
-  hash_h(ss,cbuf,KYBER_SYMBYTES+MKYBER_C1BYTES+MKYBER_C2BYTES);
+  memcpy(buf, z, KYBER_SYMBYTES);
+  memcpy(buf+KYBER_SYMBYTES, c1, MKYBER_C1BYTES);
+  memcpy(buf+KYBER_SYMBYTES+MKYBER_C1BYTES, c2, MKYBER_C2BYTES);
+  kdf(ss,buf,KYBER_SYMBYTES+MKYBER_C1BYTES+MKYBER_C2BYTES);
 
   /* Overwrite randomness with shared key if re-encryption was successful */
-  cmov(ss, kr, KYBER_SYMBYTES, 1-fail);
+  cmov(ss, t, KYBER_SYMBYTES, 1-fail);
 
   return 0;
 }

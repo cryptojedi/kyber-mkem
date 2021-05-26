@@ -1,3 +1,4 @@
+#include <string.h>
 #include <stddef.h>
 #include <stdint.h>
 #include "params.h"
@@ -222,24 +223,31 @@ void indcpa_enc_c1(uint8_t c1[MKYBER_C1BYTES],
 *                                      generate all randomness
 **************************************************/
 void indcpa_enc_c2(uint8_t c2[MKYBER_C2BYTES],
-                   const uint8_t m[KYBER_INDCPA_MSGBYTES],
-                   const uint8_t pk[MKYBER_INDCPA_PUBLICKEYBYTES],
-                   const uint8_t coins[KYBER_SYMBYTES])
+                   const uint8_t msg[KYBER_INDCPA_MSGBYTES],
+                   const uint8_t pk[MKYBER_INDCPA_PUBLICKEYBYTES])
 {
   unsigned int i;
   uint8_t nonce = 0;
   polyvec sp, pkpv;
   poly v, k, epp;
+  uint8_t coins[KYBER_SYMBYTES];
+  uint8_t buf[MKYBER_INDCPA_PUBLICKEYBYTES+KYBER_INDCPA_MSGBYTES];
 
+  /* Recompute "ephemeral secret" s and transform to NTT domain */
+  /* XXX: Could change API to avoid doing this both in indcpa_enc_c1 and here */
+  hash_h(coins, msg, KYBER_SYMBYTES);
   for(i=0;i<KYBER_K;i++)
-    poly_getnoise_eta1(sp.vec+i, coins, nonce++); /* avoid doing this twice? */
-  nonce += KYBER_K;
+    poly_getnoise_eta1(sp.vec+i, coins, nonce++);
+  polyvec_ntt(&sp);
+
+  /* XXX: compute public-key dependent coins here */
+  memcpy(buf,msg,KYBER_INDCPA_MSGBYTES);
+  memcpy(buf+KYBER_INDCPA_MSGBYTES,pk,MKYBER_INDCPA_PUBLICKEYBYTES);
+  hash_h(coins, buf, KYBER_INDCPA_MSGBYTES+MKYBER_INDCPA_PUBLICKEYBYTES);
   poly_getnoise_eta2(&epp, coins, nonce);
-  
-  polyvec_ntt(&sp); /* avoid doing this twice? */
 
   unpack_pk(&pkpv, pk);
-  poly_frommsg(&k, m);
+  poly_frommsg(&k, msg);
 
   polyvec_basemul_acc_montgomery(&v, &pkpv, &sp);
 
