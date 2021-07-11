@@ -4,8 +4,8 @@ CFLAGS += -Wall -Wextra -Wpedantic -Wmissing-prototypes -Wredundant-decls \
 NISTFLAGS += -Wno-unused-result -O3 -fomit-frame-pointer
 RM = /bin/rm
 
-SOURCES = mkem.c indcpa.c polyvec.c poly.c ntt.c cbd.c reduce.c verify.c fips202.c symmetric-shake.c
-HEADERS = params.h mkem.h indcpa.h polyvec.h poly.h ntt.h cbd.h reduce.c verify.h symmetric.h fips202.h
+SOURCES = mkem.c indcpa.c polyvec.c poly.c ntt.c cbd.c reduce.c verify.c fips202.c symmetric-shake.c uniform.c
+HEADERS = params.h mkem.h indcpa.h polyvec.h poly.h ntt.h cbd.h reduce.c verify.h symmetric.h fips202.h uniform.h
 HEADERSNINETIES = $(HEADERS) aes256ctr.h sha2.h
 
 .PHONY: all clean

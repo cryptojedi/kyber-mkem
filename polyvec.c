@@ -231,3 +231,40 @@ void polyvec_add(polyvec *r, const polyvec *a, const polyvec *b)
   for(i=0;i<KYBER_K;i++)
     poly_add(&r->vec[i], &a->vec[i], &b->vec[i]);
 }
+
+/*************************************************
+* Name:        polyvec_sub
+*
+* Description: Subtract vectors of polynomials r <- a - b
+*
+* Arguments: - polyvec *r: pointer to output vector of polynomials
+*            - const polyvec *a: pointer to first input vector of polynomials
+*            - const polyvec *b: pointer to second input vector of polynomials
+**************************************************/
+void polyvec_sub(polyvec *r, const polyvec *a, const polyvec *b)
+{
+  unsigned int i;
+  for(i=0;i<KYBER_K;i++)
+    poly_sub(&r->vec[i], &a->vec[i], &b->vec[i]);
+}
+
+
+/*************************************************
+* Name:        poly_cmov
+*
+* Description: Copy vector of polynomials x to r iff b is 1;
+*              leave r unchanged if b is 0. 
+*              Requires b to be in {0,1};
+*              Runs in constant time.
+*
+* Arguments:   polyvec *r: pointer to output vector of polynomials
+*              const poly *x: pointer to input vector of polynomials
+*              uint16_t b:  Condition bit; has to be in {0,1}
+**************************************************/
+void polyvec_cmov(polyvec *r, const polyvec *x, uint16_t b) 
+{
+  unsigned int i;
+  for(i=0;i<KYBER_K;i++)
+    poly_cmov(&r->vec[i], &x->vec[i], b);
+}
+

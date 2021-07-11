@@ -41,7 +41,7 @@ int crypto_mkem_keypair(uint8_t *pk, uint8_t *sk, const uint8_t *seed)
     sk[i] = seed[i];
   sk += KYBER_SYMBYTES;
 
-  /* Value z for pseud-random output on reject (implicit rejection) */
+  /* Value z for pseudo-random output on reject (implicit rejection) */
   randombytes(sk, KYBER_SYMBYTES);
 
   return 0;

@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include "params.h"
+#include "uniform.h"
 #include "indcpa.h"
 #include "polyvec.h"
 #include "poly.h"
@@ -10,109 +11,35 @@
 #include "randombytes.h"
 
 static void pack_pk(uint8_t r[MKYBER_INDCPA_PUBLICKEYBYTES],
-                    const polyvec *pk)
+                    const polyvec *pk, const uint8_t fakepkseed[KYBER_SYMBYTES])
 {
+  unsigned int i;
   polyvec_tobytes(r, pk);
+  for(i=0;i<KYBER_SYMBYTES;i++)
+    r[KYBER_POLYVECBYTES+i] = fakepkseed[i];
 }
 
-static void unpack_pk(polyvec *pk,
+static void unpack_pk(polyvec *pk0, polyvec *pk1,
                       const uint8_t packedpk[MKYBER_INDCPA_PUBLICKEYBYTES])
 {
-  polyvec_frombytes(pk, packedpk);
+  polyvec_frombytes(pk0, packedpk);
+  gen_polyvec(pk1, packedpk+KYBER_POLYVECBYTES);
+  polyvec_add(pk1, pk1, pk0);
 }
 
-static void pack_sk(uint8_t r[MKYBER_INDCPA_SECRETKEYBYTES], polyvec *sk)
+static void pack_sk(uint8_t r[MKYBER_INDCPA_SECRETKEYBYTES], polyvec *sk, uint8_t b)
 {
   polyvec_tobytes(r, sk);
+  r[MKYBER_INDCPA_SECRETKEYBYTES-1] = b;
 }
 
-static void unpack_sk(polyvec *sk, const uint8_t packedsk[MKYBER_INDCPA_SECRETKEYBYTES])
+static void unpack_sk(polyvec *sk, uint8_t *b, const uint8_t packedsk[MKYBER_INDCPA_SECRETKEYBYTES])
 {
   polyvec_frombytes(sk, packedsk);
+  *b = packedsk[MKYBER_INDCPA_SECRETKEYBYTES-1];
 }
 
-/*************************************************
-* Name:        rej_uniform
-*
-* Description: Run rejection sampling on uniform random bytes to generate
-*              uniform random integers mod q
-*
-* Arguments:   - int16_t *r: pointer to output buffer
-*              - unsigned int len: requested number of 16-bit integers (uniform mod q)
-*              - const uint8_t *buf: pointer to input buffer (assumed to be uniformly random bytes)
-*              - unsigned int buflen: length of input buffer in bytes
-*
-* Returns number of sampled 16-bit integers (at most len)
-**************************************************/
-static unsigned int rej_uniform(int16_t *r,
-                                unsigned int len,
-                                const uint8_t *buf,
-                                unsigned int buflen)
-{
-  unsigned int ctr, pos;
-  uint16_t val0, val1;
 
-  ctr = pos = 0;
-  while(ctr < len && pos + 3 <= buflen) {
-    val0 = ((buf[pos+0] >> 0) | ((uint16_t)buf[pos+1] << 8)) & 0xFFF;
-    val1 = ((buf[pos+1] >> 4) | ((uint16_t)buf[pos+2] << 4)) & 0xFFF;
-    pos += 3;
-
-    if(val0 < KYBER_Q)
-      r[ctr++] = val0;
-    if(ctr < len && val1 < KYBER_Q)
-      r[ctr++] = val1;
-  }
-
-  return ctr;
-}
-
-#define gen_a(A,B)  gen_matrix(A,B,0)
-#define gen_at(A,B) gen_matrix(A,B,1)
-
-/*************************************************
-* Name:        gen_matrix
-*
-* Description: Deterministically generate matrix A (or the transpose of A)
-*              from a seed. Entries of the matrix are polynomials that look
-*              uniformly random. Performs rejection sampling on output of
-*              a XOF
-*
-* Arguments:   - polyvec *a: pointer to ouptput matrix A
-*              - const uint8_t *seed: pointer to input seed
-*              - int transposed: boolean deciding whether A or A^T is generated
-**************************************************/
-#define GEN_MATRIX_NBLOCKS ((12*KYBER_N/8*(1 << 12)/KYBER_Q + XOF_BLOCKBYTES)/XOF_BLOCKBYTES)
-// Not static for benchmarking
-void gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed)
-{
-  unsigned int ctr, i, j, k;
-  unsigned int buflen, off;
-  uint8_t buf[GEN_MATRIX_NBLOCKS*XOF_BLOCKBYTES+2];
-  xof_state state;
-
-  for(i=0;i<KYBER_K;i++) {
-    for(j=0;j<KYBER_K;j++) {
-      if(transposed)
-        xof_absorb(&state, seed, i, j);
-      else
-        xof_absorb(&state, seed, j, i);
-
-      xof_squeezeblocks(buf, GEN_MATRIX_NBLOCKS, &state);
-      buflen = GEN_MATRIX_NBLOCKS*XOF_BLOCKBYTES;
-      ctr = rej_uniform(a[i].vec[j].coeffs, KYBER_N, buf, buflen);
-
-      while(ctr < KYBER_N) {
-        off = buflen % 3;
-        for(k = 0; k < off; k++)
-          buf[k] = buf[buflen - off + k];
-        xof_squeezeblocks(buf + off, 1, &state);
-        buflen = off + XOF_BLOCKBYTES;
-        ctr += rej_uniform(a[i].vec[j].coeffs + ctr, KYBER_N - ctr, buf, buflen);
-      }
-    }
-  }
-}
 
 /*************************************************
 * Name:        indcpa_mkeypair
@@ -132,11 +59,12 @@ void indcpa_mkeypair(uint8_t pk[MKYBER_INDCPA_PUBLICKEYBYTES],
                      const uint8_t publicseed[KYBER_SYMBYTES])
 {
   unsigned int i;
-  uint8_t noiseseed[KYBER_SYMBYTES];
+  uint8_t noiseseed[KYBER_SYMBYTES+1]; /* Additional byte to set random order of public keys */
+  uint8_t fakepkseed[KYBER_SYMBYTES];
   uint8_t nonce = 0;
-  polyvec a[KYBER_K], e, pkpv, skpv;
+  polyvec a[KYBER_K], e, pkpv, fakepkpv, skpv;
 
-  randombytes(noiseseed, KYBER_SYMBYTES);
+  randombytes(noiseseed+1, KYBER_SYMBYTES);
 
   gen_a(a, publicseed);
 
@@ -157,8 +85,15 @@ void indcpa_mkeypair(uint8_t pk[MKYBER_INDCPA_PUBLICKEYBYTES],
   polyvec_add(&pkpv, &pkpv, &e);
   polyvec_reduce(&pkpv);
 
-  pack_sk(sk, &skpv);
-  pack_pk(pk, &pkpv);
+  randombytes(fakepkseed, KYBER_SYMBYTES);
+  gen_polyvec(&fakepkpv, fakepkseed);
+
+  polyvec_sub(&fakepkpv, &pkpv, &fakepkpv);
+  polyvec_reduce(&fakepkpv);
+  polyvec_cmov(&pkpv, &fakepkpv, noiseseed[KYBER_SYMBYTES]&1);
+
+  pack_sk(sk, &skpv, noiseseed[KYBER_SYMBYTES]&1);
+  pack_pk(pk, &pkpv, fakepkseed);
 }
 
 /*************************************************
@@ -202,7 +137,6 @@ void indcpa_enc_c1(uint8_t c1[MKYBER_C1BYTES],
   polyvec_reduce(&b);
   
   polyvec_compress(c1, &b);
-
 }
 
 /*************************************************
@@ -225,8 +159,8 @@ void indcpa_enc_c2(uint8_t c2[MKYBER_C2BYTES],
 {
   unsigned int i;
   uint8_t nonce = 0;
-  polyvec sp, pkpv;
-  poly v, k, epp;
+  polyvec sp, pkpv0, pkpv1;
+  poly v0, v1, k, epp0, epp1;
   uint8_t coins[KYBER_SYMBYTES];
   uint8_t buf[MKYBER_INDCPA_PUBLICKEYBYTES+KYBER_INDCPA_MSGBYTES];
 
@@ -238,23 +172,38 @@ void indcpa_enc_c2(uint8_t c2[MKYBER_C2BYTES],
   polyvec_ntt(&sp);
 
   /* Compute public-key dependent coins */
+  /* XXX: Think through if this derivation of epp0 and epp1 is OK */
   memcpy(buf,pk,MKYBER_INDCPA_PUBLICKEYBYTES);
   memcpy(buf+MKYBER_INDCPA_PUBLICKEYBYTES,msg,KYBER_INDCPA_MSGBYTES);
   hash_h(coins, buf, MKYBER_INDCPA_PUBLICKEYBYTES+KYBER_INDCPA_MSGBYTES);
-  poly_getnoise_eta2(&epp, coins, nonce);
+  poly_getnoise_eta2(&epp0, coins, nonce++); /* used to encaps to first pk */
+  poly_getnoise_eta2(&epp1, coins, nonce++); /* used to encaps to second pk */
 
-  unpack_pk(&pkpv, pk);
   poly_frommsg(&k, msg);
+  
+  unpack_pk(&pkpv0, &pkpv1, pk);
 
-  polyvec_basemul_acc_montgomery(&v, &pkpv, &sp);
+  /* Encaps to first pk */
+  polyvec_basemul_acc_montgomery(&v0, &pkpv0, &sp);
 
-  poly_invntt_tomont(&v);
+  poly_invntt_tomont(&v0);
 
-  poly_add(&v, &v, &epp);
-  poly_add(&v, &v, &k);
-  poly_reduce(&v);
+  poly_add(&v0, &v0, &epp0);
+  poly_add(&v0, &v0, &k);
+  poly_reduce(&v0);
 
-  poly_compress(c2, &v);
+  poly_compress(c2, &v0);
+  
+  /* Encaps to second pk */
+  polyvec_basemul_acc_montgomery(&v1, &pkpv1, &sp);
+
+  poly_invntt_tomont(&v1);
+
+  poly_add(&v1, &v1, &epp1);
+  poly_add(&v1, &v1, &k);
+  poly_reduce(&v1);
+
+  poly_compress(c2+KYBER_POLYCOMPRESSEDBYTES, &v1);
 }
 
 
@@ -279,18 +228,21 @@ void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
                 const uint8_t sk[MKYBER_INDCPA_SECRETKEYBYTES])
 {
   polyvec b, skpv;
-  poly v, mp;
+  poly v0, v1, mp;
+  uint8_t bb;
 
   polyvec_decompress(&b, c1);
-  poly_decompress(&v, c2);
+  poly_decompress(&v0, c2);
+  poly_decompress(&v1, c2+KYBER_POLYCOMPRESSEDBYTES);
 
-  unpack_sk(&skpv, sk);
+  unpack_sk(&skpv, &bb, sk);
+  poly_cmov(&v0, &v1, bb);
 
   polyvec_ntt(&b);
   polyvec_basemul_acc_montgomery(&mp, &skpv, &b);
   poly_invntt_tomont(&mp);
 
-  poly_sub(&mp, &v, &mp);
+  poly_sub(&mp, &v0, &mp);
   poly_reduce(&mp);
 
   poly_tomsg(m, &mp);

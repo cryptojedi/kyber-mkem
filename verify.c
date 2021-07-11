@@ -45,3 +45,4 @@ void cmov(uint8_t *r, const uint8_t *x, size_t len, uint8_t b)
   for(i=0;i<len;i++)
     r[i] ^= b & (r[i] ^ x[i]);
 }
+

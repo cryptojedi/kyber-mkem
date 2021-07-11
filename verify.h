@@ -11,4 +11,7 @@ int verify(const uint8_t *a, const uint8_t *b, size_t len);
 #define cmov KYBER_NAMESPACE(cmov)
 void cmov(uint8_t *r, const uint8_t *x, size_t len, uint8_t b);
 
+#define cswap KYBER_NAMESPACE(cswap)
+void cswap(uint8_t *r, uint8_t *x, size_t len, uint8_t b);
+
 #endif

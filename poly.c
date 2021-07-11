@@ -341,3 +341,25 @@ void poly_sub(poly *r, const poly *a, const poly *b)
   for(i=0;i<KYBER_N;i++)
     r->coeffs[i] = a->coeffs[i] - b->coeffs[i];
 }
+
+
+/*************************************************
+* Name:        poly_cmov
+*
+* Description: Copy polynomial x to r iff b is 1;
+*              leave r unchanged if b is 0. 
+*              Requires b to be in {0,1};
+*              Runs in constant time.
+*
+* Arguments:   poly *r: pointer to output polynomial
+*              const poly *x: pointer to input polynomial
+*              uint16_t b:  Condition bit; has to be in {0,1}
+**************************************************/
+void poly_cmov(poly *r, const poly *x, uint16_t b)
+{
+  unsigned int i;
+
+  b = -b;
+  for(i=0;i<KYBER_N;i++)
+    r->coeffs[i] ^=  b & (r->coeffs[i] ^ x->coeffs[i]);
+}

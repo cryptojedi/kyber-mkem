@@ -50,4 +50,7 @@ void poly_add(poly *r, const poly *a, const poly *b);
 #define poly_sub KYBER_NAMESPACE(poly_sub)
 void poly_sub(poly *r, const poly *a, const poly *b);
 
+#define poly_cmov KYBER_NAMESPACE(poly_cmov)
+void poly_cmov(poly *r, const poly *x, uint16_t b);
+
 #endif
