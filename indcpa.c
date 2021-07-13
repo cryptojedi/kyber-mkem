@@ -117,26 +117,41 @@ void indcpa_enc_c1(uint8_t c1[MKYBER_C1BYTES],
 {
   unsigned int i;
   uint8_t nonce = 0;
-  polyvec sp, ep, at[KYBER_K], b;
+  polyvec sp0, sp1, ep0, ep1, at[KYBER_K], b0, b1;
 
   gen_at(at, seed);
 
   for(i=0;i<KYBER_K;i++)
-    poly_getnoise_eta1(sp.vec+i, coins, nonce++);
+    poly_getnoise_eta1(sp0.vec+i, coins, nonce++);
   for(i=0;i<KYBER_K;i++)
-    poly_getnoise_eta2(ep.vec+i, coins, nonce++);
+    poly_getnoise_eta1(sp1.vec+i, coins, nonce++);
+  for(i=0;i<KYBER_K;i++)
+    poly_getnoise_eta2(ep0.vec+i, coins, nonce++);
+  for(i=0;i<KYBER_K;i++)
+    poly_getnoise_eta2(ep1.vec+i, coins, nonce++);
 
-  polyvec_ntt(&sp);
+  polyvec_ntt(&sp0);
+  polyvec_ntt(&sp1);
 
   // matrix-vector multiplication
   for(i=0;i<KYBER_K;i++)
-    polyvec_basemul_acc_montgomery(&b.vec[i], &at[i], &sp);
+    polyvec_basemul_acc_montgomery(&b0.vec[i], &at[i], &sp0);
+ 
+  // matrix-vector multiplication
+  for(i=0;i<KYBER_K;i++)
+    polyvec_basemul_acc_montgomery(&b1.vec[i], &at[i], &sp1);
   
-  polyvec_invntt_tomont(&b);
-  polyvec_add(&b, &b, &ep);
-  polyvec_reduce(&b);
+  polyvec_invntt_tomont(&b0);
+  polyvec_add(&b0, &b0, &ep0);
+  polyvec_reduce(&b0);
   
-  polyvec_compress(c1, &b);
+  polyvec_compress(c1, &b0);
+
+  polyvec_invntt_tomont(&b1);
+  polyvec_add(&b1, &b1, &ep1);
+  polyvec_reduce(&b1);
+  
+  polyvec_compress(c1+KYBER_POLYVECCOMPRESSEDBYTES, &b1);
 }
 
 /*************************************************
@@ -159,17 +174,21 @@ void indcpa_enc_c2(uint8_t c2[MKYBER_C2BYTES],
 {
   unsigned int i;
   uint8_t nonce = 0;
-  polyvec sp, pkpv0, pkpv1;
+  polyvec sp0, sp1, pkpv0, pkpv1;
   poly v0, v1, k, epp0, epp1;
   uint8_t coins[KYBER_SYMBYTES];
   uint8_t buf[MKYBER_INDCPA_PUBLICKEYBYTES+KYBER_INDCPA_MSGBYTES];
 
-  /* Recompute "ephemeral secret" s and transform to NTT domain */
+  /* Recompute "ephemeral secrets" s0 and s1 and transform to NTT domain */
   /* XXX: Could change API to avoid doing this both in indcpa_enc_c1 and here */
   hash_h(coins, msg, KYBER_SYMBYTES);
   for(i=0;i<KYBER_K;i++)
-    poly_getnoise_eta1(sp.vec+i, coins, nonce++);
-  polyvec_ntt(&sp);
+    poly_getnoise_eta1(sp0.vec+i, coins, nonce++);
+  for(i=0;i<KYBER_K;i++)
+    poly_getnoise_eta1(sp1.vec+i, coins, nonce++);
+  
+  polyvec_ntt(&sp0);
+  polyvec_ntt(&sp1);
 
   /* Compute public-key dependent coins */
   /* XXX: Think through if this derivation of epp0 and epp1 is OK */
@@ -184,7 +203,7 @@ void indcpa_enc_c2(uint8_t c2[MKYBER_C2BYTES],
   unpack_pk(&pkpv0, &pkpv1, pk);
 
   /* Encaps to first pk */
-  polyvec_basemul_acc_montgomery(&v0, &pkpv0, &sp);
+  polyvec_basemul_acc_montgomery(&v0, &pkpv0, &sp0);
 
   poly_invntt_tomont(&v0);
 
@@ -195,7 +214,7 @@ void indcpa_enc_c2(uint8_t c2[MKYBER_C2BYTES],
   poly_compress(c2, &v0);
   
   /* Encaps to second pk */
-  polyvec_basemul_acc_montgomery(&v1, &pkpv1, &sp);
+  polyvec_basemul_acc_montgomery(&v1, &pkpv1, &sp1);
 
   poly_invntt_tomont(&v1);
 
@@ -227,19 +246,22 @@ void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
                 const uint8_t c2[MKYBER_C2BYTES],
                 const uint8_t sk[MKYBER_INDCPA_SECRETKEYBYTES])
 {
-  polyvec b, skpv;
+  polyvec b0, b1, skpv;
   poly v0, v1, mp;
   uint8_t bb;
 
-  polyvec_decompress(&b, c1);
+  polyvec_decompress(&b0, c1);
+  polyvec_decompress(&b1, c1+KYBER_POLYVECCOMPRESSEDBYTES);
+  polyvec_cmov(&b0, &b1, sk[MKYBER_INDCPA_SECRETKEYBYTES-1]);
+
   poly_decompress(&v0, c2);
   poly_decompress(&v1, c2+KYBER_POLYCOMPRESSEDBYTES);
 
   unpack_sk(&skpv, &bb, sk);
   poly_cmov(&v0, &v1, bb);
 
-  polyvec_ntt(&b);
-  polyvec_basemul_acc_montgomery(&mp, &skpv, &b);
+  polyvec_ntt(&b0);
+  polyvec_basemul_acc_montgomery(&mp, &skpv, &b0);
   poly_invntt_tomont(&mp);
 
   poly_sub(&mp, &v0, &mp);
