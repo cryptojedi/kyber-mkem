@@ -177,11 +177,18 @@ void indcpa_enc_c2(uint8_t c2[MKYBER_C2BYTES],
   polyvec sp0, sp1, pkpv0, pkpv1;
   poly v0, v1, k, epp0, epp1;
   uint8_t coins[KYBER_SYMBYTES];
+  uint8_t tmsg[KYBER_INDCPA_MSGBYTES];
   uint8_t buf[MKYBER_INDCPA_PUBLICKEYBYTES+KYBER_INDCPA_MSGBYTES];
+
+  /* XXX: Think about this more */
+  uint8_t flippks = msg[KYBER_INDCPA_MSGBYTES-1] & 1;
+  for(i=0;i<KYBER_INDCPA_MSGBYTES;i++) 
+    tmsg[i] = msg[i];
+  tmsg[KYBER_INDCPA_MSGBYTES-1] &= 0xfe;
 
   /* Recompute "ephemeral secrets" s0 and s1 and transform to NTT domain */
   /* XXX: Could change API to avoid doing this both in indcpa_enc_c1 and here */
-  hash_h(coins, msg, KYBER_SYMBYTES);
+  hash_h(coins, tmsg, KYBER_SYMBYTES);
   for(i=0;i<KYBER_K;i++)
     poly_getnoise_eta1(sp0.vec+i, coins, nonce++);
   for(i=0;i<KYBER_K;i++)
@@ -193,14 +200,15 @@ void indcpa_enc_c2(uint8_t c2[MKYBER_C2BYTES],
   /* Compute public-key dependent coins */
   /* XXX: Think through if this derivation of epp0 and epp1 is OK */
   memcpy(buf,pk,MKYBER_INDCPA_PUBLICKEYBYTES);
-  memcpy(buf+MKYBER_INDCPA_PUBLICKEYBYTES,msg,KYBER_INDCPA_MSGBYTES);
+  memcpy(buf+MKYBER_INDCPA_PUBLICKEYBYTES,tmsg,KYBER_INDCPA_MSGBYTES);
   hash_h(coins, buf, MKYBER_INDCPA_PUBLICKEYBYTES+KYBER_INDCPA_MSGBYTES);
   poly_getnoise_eta2(&epp0, coins, nonce++); /* used to encaps to first pk */
   poly_getnoise_eta2(&epp1, coins, nonce++); /* used to encaps to second pk */
 
-  poly_frommsg(&k, msg);
+  poly_frommsg(&k, tmsg);
   
   unpack_pk(&pkpv0, &pkpv1, pk);
+  polyvec_cswap(&pkpv0, &pkpv1, flippks);
 
   /* Encaps to first pk */
   polyvec_basemul_acc_montgomery(&v0, &pkpv0, &sp0);
@@ -223,6 +231,7 @@ void indcpa_enc_c2(uint8_t c2[MKYBER_C2BYTES],
   poly_reduce(&v1);
 
   poly_compress(c2+KYBER_POLYCOMPRESSEDBYTES, &v1);
+  c2[MKYBER_C2BYTES-1] = flippks;
 }
 
 
@@ -252,13 +261,13 @@ void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
 
   polyvec_decompress(&b0, c1);
   polyvec_decompress(&b1, c1+KYBER_POLYVECCOMPRESSEDBYTES);
-  polyvec_cmov(&b0, &b1, sk[MKYBER_INDCPA_SECRETKEYBYTES-1]);
+  polyvec_cmov(&b0, &b1, sk[MKYBER_INDCPA_SECRETKEYBYTES-1]^c2[MKYBER_C2BYTES-1]);
 
   poly_decompress(&v0, c2);
   poly_decompress(&v1, c2+KYBER_POLYCOMPRESSEDBYTES);
 
   unpack_sk(&skpv, &bb, sk);
-  poly_cmov(&v0, &v1, bb);
+  poly_cmov(&v0, &v1, bb^c2[MKYBER_C2BYTES-1]);
 
   polyvec_ntt(&b0);
   polyvec_basemul_acc_montgomery(&mp, &skpv, &b0);

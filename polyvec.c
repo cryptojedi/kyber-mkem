@@ -268,3 +268,22 @@ void polyvec_cmov(polyvec *r, const polyvec *x, uint16_t b)
     poly_cmov(&r->vec[i], &x->vec[i], b);
 }
 
+/*************************************************
+* Name:        poly_cswap
+*
+* Description: Conditionally swap vector of polynomials r and x
+*              depending on the value of b.
+*              Requires b to be in {0,1};
+*              Runs in constant time.
+*
+* Arguments:   polyvec *r: pointer to first vector of polynomials
+*              const poly *x: pointer to second vector of polynomials
+*              uint16_t b:  Condition bit; has to be in {0,1}
+**************************************************/
+void polyvec_cswap(polyvec *r, polyvec *x, uint16_t b) 
+{
+  unsigned int i;
+  for(i=0;i<KYBER_K;i++)
+    poly_cswap(&r->vec[i], &x->vec[i], b);
+}
+

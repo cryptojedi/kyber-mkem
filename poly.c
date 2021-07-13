@@ -363,3 +363,29 @@ void poly_cmov(poly *r, const poly *x, uint16_t b)
   for(i=0;i<KYBER_N;i++)
     r->coeffs[i] ^=  b & (r->coeffs[i] ^ x->coeffs[i]);
 }
+
+/*************************************************
+* Name:        poly_cswap
+*
+* Description: Conditionally swap polynomials r and x
+*              depending on the value of b.
+*              Requires b to be in {0,1};
+*              Runs in constant time.
+*
+* Arguments:   polyvec *r: pointer to first polynomial
+*              const poly *x: pointer to second polynomial
+*              uint16_t b:  Condition bit; has to be in {0,1}
+**************************************************/
+void poly_cswap(poly *r, poly *x, uint16_t b)
+{
+  unsigned int i;
+  int16_t t;
+
+  b = -b;
+  for(i=0;i<KYBER_N;i++)
+  {
+    t = b & (r->coeffs[i] ^ x->coeffs[i]);
+    r->coeffs[i] ^=  t;
+    x->coeffs[i] ^=  t;
+  }
+}

@@ -53,4 +53,8 @@ void poly_sub(poly *r, const poly *a, const poly *b);
 #define poly_cmov KYBER_NAMESPACE(poly_cmov)
 void poly_cmov(poly *r, const poly *x, uint16_t b);
 
+#define poly_cswap KYBER_NAMESPACE(poly_cswap)
+void poly_cswap(poly *r, poly *x, uint16_t b);
+
+
 #endif

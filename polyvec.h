@@ -39,4 +39,7 @@ void polyvec_sub(polyvec *r, const polyvec *a, const polyvec *b);
 #define polyvec_cmov KYBER_NAMESPACE(polyvec_cmov)
 void polyvec_cmov(polyvec *r, const polyvec *x, uint16_t b); 
 
+#define polyvec_cswap KYBER_NAMESPACE(polyvec_cswap)
+void polyvec_cswap(polyvec *r, polyvec *x, uint16_t b); 
+
 #endif
