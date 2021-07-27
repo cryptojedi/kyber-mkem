@@ -64,7 +64,7 @@ void indcpa_mkeypair(uint8_t pk[MKYBER_INDCPA_PUBLICKEYBYTES],
   uint8_t nonce = 0;
   polyvec a[KYBER_K], e, pkpv, fakepkpv, skpv;
 
-  randombytes(noiseseed+1, KYBER_SYMBYTES);
+  randombytes(noiseseed, KYBER_SYMBYTES+1);
 
   gen_a(a, publicseed);
 
@@ -86,6 +86,8 @@ void indcpa_mkeypair(uint8_t pk[MKYBER_INDCPA_PUBLICKEYBYTES],
   polyvec_reduce(&pkpv);
 
   randombytes(fakepkseed, KYBER_SYMBYTES);
+  /* Don't release system RNG output */
+  hash_h(fakepkseed, fakepkseed, KYBER_SYMBYTES);
   gen_polyvec(&fakepkpv, fakepkseed);
 
   polyvec_sub(&fakepkpv, &pkpv, &fakepkpv);
