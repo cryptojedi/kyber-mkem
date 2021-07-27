@@ -107,6 +107,8 @@ void indcpa_mkeypair(uint8_t pk[MKYBER_INDCPA_PUBLICKEYBYTES],
 *
 * Arguments:   - uint8_t *c1: pointer to output ciphertext component
 *                             (of length MKYBER_C1BYTES bytes)
+*              - uint8_t *fwd: pointer to (secret) information that is forwarded
+*                              to enc_c2 (of length MKYBER_FWDBYTES)
 *              - const uint8_t *seed: pointer to input public seed
 *                                  (of length KYBER_SYMBYTES bytes)
 *              - const uint8_t *coins: pointer to input random coins used as seed
@@ -114,6 +116,7 @@ void indcpa_mkeypair(uint8_t pk[MKYBER_INDCPA_PUBLICKEYBYTES],
 *                                      generate all randomness
 **************************************************/
 void indcpa_enc_c1(uint8_t c1[MKYBER_C1BYTES],
+                   uint8_t fwd[MKYBER_FWDBYTES],
                    const uint8_t seed[KYBER_SYMBYTES],
                    const uint8_t coins[KYBER_SYMBYTES])
 {
@@ -152,6 +155,9 @@ void indcpa_enc_c1(uint8_t c1[MKYBER_C1BYTES],
   polyvec_invntt_tomont(&b1);
   polyvec_add(&b1, &b1, &ep1);
   polyvec_reduce(&b1);
+
+  polyvec_tobytes(fwd, &sp0);
+  polyvec_tobytes(fwd+KYBER_POLYVECBYTES, &sp1);
   
   polyvec_compress(c1+KYBER_POLYVECCOMPRESSEDBYTES, &b1);
 }
@@ -169,12 +175,14 @@ void indcpa_enc_c1(uint8_t c1[MKYBER_C1BYTES],
 *                                  (of length KYBER_INDCPA_MSGBYTES bytes)
 *              - const uint8_t *pk: pointer to input public key
 *                                   (of length MKYBER_INDCPA_PUBLICKEYBYTES bytes)
+*              - const uint8_t *fwd: array of (secret) information forwarded
+*                                    from indcpa_enc_c1
 **************************************************/
 void indcpa_enc_c2(uint8_t c2[MKYBER_C2BYTES],
                    const uint8_t msg[KYBER_INDCPA_MSGBYTES],
-                   const uint8_t pk[MKYBER_INDCPA_PUBLICKEYBYTES])
+                   const uint8_t pk[MKYBER_INDCPA_PUBLICKEYBYTES],
+                   const uint8_t fwd[MKYBER_FWDBYTES])
 {
-  unsigned int i;
   uint8_t nonce = 0;
   polyvec sp0, sp1, pkpv0, pkpv1;
   poly v0, v1, k, epp0, epp1;
@@ -182,17 +190,9 @@ void indcpa_enc_c2(uint8_t c2[MKYBER_C2BYTES],
   uint8_t buf[MKYBER_INDCPA_PUBLICKEYBYTES+KYBER_INDCPA_MSGBYTES];
   uint8_t flippks;
 
-  /* Recompute "ephemeral secrets" s0 and s1 and transform to NTT domain */
-  /* XXX: Could change API to avoid doing this both in indcpa_enc_c1 and here */
-  hash_h(coins, msg, KYBER_SYMBYTES);
-  for(i=0;i<KYBER_K;i++)
-    poly_getnoise_eta1(sp0.vec+i, coins, nonce++);
-  for(i=0;i<KYBER_K;i++)
-    poly_getnoise_eta1(sp1.vec+i, coins, nonce++);
+  polyvec_frombytes(&sp0, fwd);
+  polyvec_frombytes(&sp1, fwd+KYBER_POLYVECBYTES);
   
-  polyvec_ntt(&sp0);
-  polyvec_ntt(&sp1);
-
   /* Compute public-key dependent coins */
   /* XXX: Think through if this derivation of epp0 and epp1 is OK */
   memcpy(buf,pk,MKYBER_INDCPA_PUBLICKEYBYTES);

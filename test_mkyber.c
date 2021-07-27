@@ -17,6 +17,7 @@ static int test_keys(void)
   uint8_t rnd[KYBER_SYMBYTES];
 
   uint8_t c1[MKYBER_C1BYTES];
+  uint8_t fwd[MKYBER_FWDBYTES];
   uint8_t *c2[NKEYS];
 
   uint8_t key_a[KYBER_SSBYTES];
@@ -53,8 +54,8 @@ static int test_keys(void)
   randombytes(rnd, KYBER_SYMBYTES);
   for(i=0;i<NKEYS;i++)
   {
-    crypto_mkem_enc_c1(c1, key_a, seed, rnd);
-    crypto_mkem_enc_c2(c2[i], pk[i], rnd);
+    crypto_mkem_enc_c1(c1, key_a, fwd, seed, rnd);
+    crypto_mkem_enc_c2(c2[i], pk[i], rnd, fwd);
     crypto_mkem_dec(key_b, c1, c2[i], sk[i]);
     if(memcmp(key_a, key_b, KYBER_SSBYTES)) {
       printf("ERROR keys (split API) at position %lu\n", i);
@@ -82,6 +83,7 @@ static int test_invalid_sk(void)
   uint8_t rnd[KYBER_SYMBYTES];
 
   uint8_t c1[MKYBER_C1BYTES];
+  uint8_t fwd[MKYBER_FWDBYTES];
   uint8_t *c2[NKEYS];
 
   uint8_t key_a[KYBER_SSBYTES];
@@ -129,8 +131,8 @@ static int test_invalid_sk(void)
   randombytes(rnd, KYBER_SYMBYTES);
   for(i=0;i<NKEYS;i++)
   {
-    crypto_mkem_enc_c1(c1, key_a, seed, rnd);
-    crypto_mkem_enc_c2(c2[i], pk[i], rnd);
+    crypto_mkem_enc_c1(c1, key_a, fwd, seed, rnd);
+    crypto_mkem_enc_c2(c2[i], pk[i], rnd, fwd);
     crypto_mkem_dec(key_b, c1, c2[i], sk[i]);
     if(!memcmp(key_a, key_b, KYBER_SSBYTES)) {
       printf("ERROR keys (split API) at position %lu\n", i);
@@ -159,6 +161,7 @@ static int test_invalid_ciphertext(void)
   uint8_t rnd[KYBER_SYMBYTES];
 
   uint8_t c1[MKYBER_C1BYTES];
+  uint8_t fwd[MKYBER_FWDBYTES];
   uint8_t *c2[NKEYS];
 
   uint8_t key_a[KYBER_SSBYTES];
@@ -206,8 +209,8 @@ static int test_invalid_ciphertext(void)
   randombytes(rnd, KYBER_SYMBYTES);
   for(i=0;i<NKEYS;i++)
   {
-    crypto_mkem_enc_c1(c1, key_a, seed, rnd);
-    crypto_mkem_enc_c2(c2[i], pk[i], rnd);
+    crypto_mkem_enc_c1(c1, key_a, fwd, seed, rnd);
+    crypto_mkem_enc_c2(c2[i], pk[i], rnd, fwd);
     randombytes((unsigned char *)&pos, sizeof(pos));
     c1[pos % MKYBER_C1BYTES] ^= 1; /* Flip one bit in c1 */
     crypto_mkem_dec(key_b, c1, c2[i], sk[i]);

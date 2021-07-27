@@ -11,13 +11,15 @@ int crypto_mkem_keypair(uint8_t *pk,
 
 int crypto_mkem_enc_c1(uint8_t *c1,
                        uint8_t *ss,
+                       uint8_t *fwd,
                        const uint8_t *seed,
                        const uint8_t *r);
 
 
 int crypto_mkem_enc_c2(uint8_t *c2,
                        const uint8_t *pk,
-                       const uint8_t *r);
+                       const uint8_t *r,
+                       const uint8_t *fwd);
 
 
 int crypto_mkem_enc(uint8_t *c1,
