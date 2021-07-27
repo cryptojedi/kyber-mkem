@@ -96,6 +96,8 @@ int crypto_mkem_enc_c1(uint8_t *c1,
 *                (an array of MKYBER_PUBLICKEYBYTES bytes)
 *              - const uint8_t *r: pointer to input random coins;
 *                needs to be of length KYBER_SYMBYTES and generated beforehand
+*              - const uint8_t *fwd: pointer to (secret) information forwarded
+*                by crypto_mkem_enc_c1 (of length MKYBER_FWDBYTES)
 *
 * Returns 0 (success)
 **************************************************/

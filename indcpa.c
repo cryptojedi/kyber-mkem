@@ -177,6 +177,7 @@ void indcpa_enc_c1(uint8_t c1[MKYBER_C1BYTES],
 *                                   (of length MKYBER_INDCPA_PUBLICKEYBYTES bytes)
 *              - const uint8_t *fwd: array of (secret) information forwarded
 *                                    from indcpa_enc_c1
+*              - const uint8_t *coins2: array of public-key dependent coins
 **************************************************/
 void indcpa_enc_c2(uint8_t c2[MKYBER_C2BYTES],
                    const uint8_t msg[KYBER_INDCPA_MSGBYTES],
