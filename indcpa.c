@@ -181,28 +181,24 @@ void indcpa_enc_c1(uint8_t c1[MKYBER_C1BYTES],
 void indcpa_enc_c2(uint8_t c2[MKYBER_C2BYTES],
                    const uint8_t msg[KYBER_INDCPA_MSGBYTES],
                    const uint8_t pk[MKYBER_INDCPA_PUBLICKEYBYTES],
-                   const uint8_t fwd[MKYBER_FWDBYTES])
+                   const uint8_t fwd[MKYBER_FWDBYTES],
+                   const uint8_t coins2[KYBER_SYMBYTES])
 {
   uint8_t nonce = 0;
   polyvec sp0, sp1, pkpv0, pkpv1;
   poly v0, v1, k, epp0, epp1;
-  uint8_t coins[KYBER_SYMBYTES];
-  uint8_t buf[MKYBER_INDCPA_PUBLICKEYBYTES+KYBER_INDCPA_MSGBYTES];
+  uint8_t tcoins2[KYBER_SYMBYTES];
   uint8_t flippks;
 
   polyvec_frombytes(&sp0, fwd);
   polyvec_frombytes(&sp1, fwd+KYBER_POLYVECBYTES);
   
-  /* Compute public-key dependent coins */
-  /* XXX: Think through if this derivation of epp0 and epp1 is OK */
-  memcpy(buf,pk,MKYBER_INDCPA_PUBLICKEYBYTES);
-  memcpy(buf+MKYBER_INDCPA_PUBLICKEYBYTES,msg,KYBER_INDCPA_MSGBYTES);
-  hash_h(coins, buf, MKYBER_INDCPA_PUBLICKEYBYTES+KYBER_INDCPA_MSGBYTES);
-  flippks = coins[0] & 1;
-  coins[0] &= 0xfe;  /* Take one bit of coins to decide whether to flip or not */
+  memcpy(tcoins2, coins2, KYBER_SYMBYTES);
+  flippks = tcoins2[0] & 1;
+  tcoins2[0] &= 0xfe;  /* Take one bit of coins to decide whether to flip or not */
 
-  poly_getnoise_eta2(&epp0, coins, nonce++); /* used to encaps to first pk */
-  poly_getnoise_eta2(&epp1, coins, nonce++); /* used to encaps to second pk */
+  poly_getnoise_eta2(&epp0, tcoins2, nonce++); /* used to encaps to first pk */
+  poly_getnoise_eta2(&epp1, tcoins2, nonce++); /* used to encaps to second pk */
 
   poly_frommsg(&k, msg);
   

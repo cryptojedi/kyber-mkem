@@ -20,7 +20,8 @@ void indcpa_enc_c1(uint8_t c1[MKYBER_C1BYTES],
 void indcpa_enc_c2(uint8_t c2[MKYBER_C2BYTES],
                    const uint8_t m[KYBER_INDCPA_MSGBYTES],
                    const uint8_t pk[MKYBER_INDCPA_PUBLICKEYBYTES],
-                   const uint8_t fwd[MKYBER_FWDBYTES]);
+                   const uint8_t fwd[MKYBER_FWDBYTES],
+                   const uint8_t coins2[KYBER_SYMBYTES]);
 
 void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
                 const uint8_t c1[MKYBER_C1BYTES],

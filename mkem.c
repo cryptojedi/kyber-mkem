@@ -105,11 +105,18 @@ int crypto_mkem_enc_c2(uint8_t *c2,
                        const uint8_t *fwd)
 {
   uint8_t msg[KYBER_SYMBYTES];
+  uint8_t coins2[KYBER_SYMBYTES];
+  uint8_t buf[MKYBER_INDCPA_PUBLICKEYBYTES+KYBER_INDCPA_MSGBYTES];
 
   /* Don't release system RNG output */
   hash_h(msg, r, KYBER_SYMBYTES);
 
-  indcpa_enc_c2(c2, msg, pk, fwd);
+  /* compute public-key dependent coins */
+  memcpy(buf,pk,MKYBER_INDCPA_PUBLICKEYBYTES);
+  memcpy(buf+MKYBER_INDCPA_PUBLICKEYBYTES,msg,KYBER_INDCPA_MSGBYTES);
+  hash_h(coins2, buf, MKYBER_INDCPA_PUBLICKEYBYTES+KYBER_INDCPA_MSGBYTES);
+
+  indcpa_enc_c2(c2, msg, pk, fwd, coins2);
   return 0;
 }
 
@@ -143,6 +150,8 @@ int crypto_mkem_enc(uint8_t *c1,
   uint8_t fwd[MKYBER_FWDBYTES];
   /* Will contain key, coins */
   uint8_t coins[KYBER_SYMBYTES];
+  uint8_t coins2[KYBER_SYMBYTES];
+  uint8_t buf[MKYBER_INDCPA_PUBLICKEYBYTES+KYBER_INDCPA_MSGBYTES];
   size_t i;
 
   randombytes(msg, KYBER_SYMBYTES);
@@ -157,13 +166,18 @@ int crypto_mkem_enc(uint8_t *c1,
 
   for(i=0;i<num_keys;i++)
   {
-    indcpa_enc_c2(c2s[i], msg, pk[i], fwd);
+    /* compute public-key dependent coins2 */
+    memcpy(buf,pk[i],MKYBER_INDCPA_PUBLICKEYBYTES);
+    memcpy(buf+MKYBER_INDCPA_PUBLICKEYBYTES,msg,KYBER_INDCPA_MSGBYTES);
+    hash_h(coins2, buf, MKYBER_INDCPA_PUBLICKEYBYTES+KYBER_INDCPA_MSGBYTES);
+
+    indcpa_enc_c2(c2s[i], msg, pk[i], fwd, coins2);
   }
   return 0;
 }
 
 /*************************************************
-* Name:        crypto_mkem_enc
+* Name:        crypto_mkem_dec
 *
 * Description: Generates a batch of ciphertexts all with the same first component c1
 *
@@ -188,10 +202,12 @@ int crypto_mkem_dec(uint8_t *ss,
   /* Will contain key, coins */
   uint8_t t[KYBER_SYMBYTES];
   uint8_t coins[KYBER_SYMBYTES];
+  uint8_t coins2[KYBER_SYMBYTES];
   uint8_t cmp1[MKYBER_C1BYTES];
   uint8_t cmp2[MKYBER_C2BYTES];
   uint8_t fwd[MKYBER_FWDBYTES];
   uint8_t buf[KYBER_SYMBYTES+MKYBER_C1BYTES+MKYBER_C2BYTES];
+  uint8_t buf2[MKYBER_INDCPA_PUBLICKEYBYTES+KYBER_INDCPA_MSGBYTES];
   const uint8_t *pk   = sk+MKYBER_INDCPA_SECRETKEYBYTES;
   const uint8_t *seed = pk+MKYBER_INDCPA_PUBLICKEYBYTES;
   const uint8_t *z = sk+ MKYBER_INDCPA_SECRETKEYBYTES + MKYBER_INDCPA_PUBLICKEYBYTES + KYBER_SYMBYTES;
@@ -204,7 +220,12 @@ int crypto_mkem_dec(uint8_t *ss,
   /* Re-encrypt */
   hash_h(coins, msg, KYBER_SYMBYTES);
   indcpa_enc_c1(cmp1, fwd, seed, coins);
-  indcpa_enc_c2(cmp2, msg, pk, fwd);
+
+  /* compute public-key dependent coins2 */
+  memcpy(buf2,pk,MKYBER_INDCPA_PUBLICKEYBYTES);
+  memcpy(buf2+MKYBER_INDCPA_PUBLICKEYBYTES,msg,KYBER_INDCPA_MSGBYTES);
+  hash_h(coins2, buf2, MKYBER_INDCPA_PUBLICKEYBYTES+KYBER_INDCPA_MSGBYTES);
+  indcpa_enc_c2(cmp2, msg, pk, fwd, coins2);
 
   fail  = verify(c1, cmp1, MKYBER_C1BYTES);
   fail |= verify(c2, cmp2, MKYBER_C2BYTES);
