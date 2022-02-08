@@ -1,14 +1,19 @@
-#include <string.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <immintrin.h>
+#include <string.h>
+#include "align.h"
 #include "params.h"
-#include "uniform.h"
 #include "indcpa.h"
 #include "polyvec.h"
 #include "poly.h"
 #include "ntt.h"
+#include "cbd.h"
+#include "uniform.h"
 #include "symmetric.h"
 #include "randombytes.h"
+
+#include "debug.h"
 
 static void pack_pk(uint8_t r[MKYBER_INDCPA_PUBLICKEYBYTES],
                     const polyvec *pk, const uint8_t fakepkseed[KYBER_SYMBYTES])
@@ -22,9 +27,14 @@ static void pack_pk(uint8_t r[MKYBER_INDCPA_PUBLICKEYBYTES],
 static void unpack_pk(polyvec *pk0, polyvec *pk1,
                       const uint8_t packedpk[MKYBER_INDCPA_PUBLICKEYBYTES])
 {
+  int i;
   polyvec_frombytes(pk0, packedpk);
   gen_polyvec(pk1, packedpk+KYBER_POLYVECBYTES);
+  for(i=0;i<KYBER_K;i++)
+    poly_nttunpack(&pk1->vec[i]);
+
   polyvec_add(pk1, pk1, pk0);
+  polyvec_reduce(pk1); //XXX: Only for debugging purposes
 }
 
 static void pack_sk(uint8_t r[MKYBER_INDCPA_SECRETKEYBYTES], polyvec *sk, uint8_t b)
@@ -38,7 +48,6 @@ static void unpack_sk(polyvec *sk, uint8_t *b, const uint8_t packedsk[MKYBER_IND
   polyvec_frombytes(sk, packedsk);
   *b = packedsk[MKYBER_INDCPA_SECRETKEYBYTES-1];
 }
-
 
 
 /*************************************************
@@ -74,6 +83,7 @@ void indcpa_mkeypair(uint8_t pk[MKYBER_INDCPA_PUBLICKEYBYTES],
     poly_getnoise_eta1(&e.vec[i], noiseseed, nonce++);
 
   polyvec_ntt(&skpv);
+  polyvec_reduce(&skpv);
   polyvec_ntt(&e);
 
   // matrix-vector multiplication
@@ -81,7 +91,7 @@ void indcpa_mkeypair(uint8_t pk[MKYBER_INDCPA_PUBLICKEYBYTES],
     polyvec_basemul_acc_montgomery(&pkpv.vec[i], &a[i], &skpv);
     poly_tomont(&pkpv.vec[i]);
   }
-
+ 
   polyvec_add(&pkpv, &pkpv, &e);
   polyvec_reduce(&pkpv);
 
@@ -89,9 +99,12 @@ void indcpa_mkeypair(uint8_t pk[MKYBER_INDCPA_PUBLICKEYBYTES],
   /* Don't release system RNG output */
   hash_h(fakepkseed, fakepkseed, KYBER_SYMBYTES);
   gen_polyvec(&fakepkpv, fakepkseed);
+  for(i=0;i<KYBER_K;i++)
+    poly_nttunpack(&fakepkpv.vec[i]);
 
   polyvec_sub(&fakepkpv, &pkpv, &fakepkpv);
   polyvec_reduce(&fakepkpv);
+
   polyvec_cmov(&pkpv, &fakepkpv, noiseseed[KYBER_SYMBYTES]&1);
 
   pack_sk(sk, &skpv, noiseseed[KYBER_SYMBYTES]&1);
@@ -123,6 +136,7 @@ void indcpa_enc_c1(uint8_t c1[MKYBER_C1BYTES],
   unsigned int i;
   uint8_t nonce = 0;
   polyvec sp0, sp1, ep0, ep1, at[KYBER_K], b0, b1;
+  uint8_t tbuf[KYBER_POLYVECCOMPRESSEDBYTES+2];
 
   gen_at(at, seed);
 
@@ -137,7 +151,9 @@ void indcpa_enc_c1(uint8_t c1[MKYBER_C1BYTES],
 
   polyvec_ntt(&sp0);
   polyvec_ntt(&sp1);
-
+  polyvec_reduce(&sp0);
+  polyvec_reduce(&sp1);
+ 
   // matrix-vector multiplication
   for(i=0;i<KYBER_K;i++)
     polyvec_basemul_acc_montgomery(&b0.vec[i], &at[i], &sp0);
@@ -145,7 +161,7 @@ void indcpa_enc_c1(uint8_t c1[MKYBER_C1BYTES],
   // matrix-vector multiplication
   for(i=0;i<KYBER_K;i++)
     polyvec_basemul_acc_montgomery(&b1.vec[i], &at[i], &sp1);
-  
+ 
   polyvec_invntt_tomont(&b0);
   polyvec_add(&b0, &b0, &ep0);
   polyvec_reduce(&b0);
@@ -159,7 +175,8 @@ void indcpa_enc_c1(uint8_t c1[MKYBER_C1BYTES],
   polyvec_tobytes(fwd, &sp0);
   polyvec_tobytes(fwd+KYBER_POLYVECBYTES, &sp1);
   
-  polyvec_compress(c1+KYBER_POLYVECCOMPRESSEDBYTES, &b1);
+  polyvec_compress(tbuf, &b1);
+  memcpy(c1+KYBER_POLYVECCOMPRESSEDBYTES, tbuf, KYBER_POLYVECCOMPRESSEDBYTES);
 }
 
 /*************************************************
@@ -193,7 +210,7 @@ void indcpa_enc_c2(uint8_t c2[MKYBER_C2BYTES],
 
   polyvec_frombytes(&sp0, fwd);
   polyvec_frombytes(&sp1, fwd+KYBER_POLYVECBYTES);
-  
+
   memcpy(tcoins2, coins2, KYBER_SYMBYTES);
   flippks = tcoins2[0] & 1;
   tcoins2[0] &= 0xfe;  /* Take one bit of coins to decide whether to flip or not */
@@ -240,9 +257,9 @@ void indcpa_enc_c2(uint8_t c2[MKYBER_C2BYTES],
 * Arguments:   - uint8_t *m: pointer to output decrypted message
 *                            (of length KYBER_INDCPA_MSGBYTES)
 *              - const uint8_t *c1: pointer to input first ciphertext component
-*                                  (of length MMKYBER_C1BYTES)
+*                                   (of length MKYBER_C1BYTES)
 *              - const uint8_t *c2: pointer to input second ciphertext component
-*                                  (of length MKYBER_C2BYTES)
+*                                   (of length MKYBER_C2BYTES)
 *              - const uint8_t *sk: pointer to input secret key
 *                                   (of length MKYBER_INDCPA_SECRETKEYBYTES)
 **************************************************/
@@ -255,8 +272,11 @@ void indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
   poly v0, v1, mp;
   uint8_t bb;
 
+  uint8_t tbuf[MKYBER_C1BYTES+12];
+  memcpy(tbuf,c1+KYBER_POLYVECCOMPRESSEDBYTES,KYBER_POLYVECCOMPRESSEDBYTES);
+
   polyvec_decompress(&b0, c1);
-  polyvec_decompress(&b1, c1+KYBER_POLYVECCOMPRESSEDBYTES);
+  polyvec_decompress(&b1, tbuf);
   polyvec_cmov(&b0, &b1, sk[MKYBER_INDCPA_SECRETKEYBYTES-1]^c2[MKYBER_C2BYTES-1]);
 
   poly_decompress(&v0, c2);

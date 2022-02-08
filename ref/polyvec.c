@@ -250,7 +250,7 @@ void polyvec_sub(polyvec *r, const polyvec *a, const polyvec *b)
 
 
 /*************************************************
-* Name:        poly_cmov
+* Name:        polyvec_cmov
 *
 * Description: Copy vector of polynomials x to r iff b is 1;
 *              leave r unchanged if b is 0. 
@@ -269,7 +269,7 @@ void polyvec_cmov(polyvec *r, const polyvec *x, uint16_t b)
 }
 
 /*************************************************
-* Name:        poly_cswap
+* Name:        polyvec_cswap
 *
 * Description: Conditionally swap vector of polynomials r and x
 *              depending on the value of b.

@@ -5,15 +5,13 @@
 #define KYBER_K 3	/* Change this for different security strengths */
 #endif
 
-//#define KYBER_90S	/* Uncomment this if you want the 90S variant */
-
 /* Don't change parameters below this line */
 #if   (KYBER_K == 2)
-#define KYBER_NAMESPACE(s) pqcrystals_mkyber512_ref_##s
+#define KYBER_NAMESPACE(s) pqcrystals_kyber512_avx2_##s
 #elif (KYBER_K == 3)
-#define KYBER_NAMESPACE(s) pqcrystals_mkyber768_ref_##s
+#define KYBER_NAMESPACE(s) pqcrystals_kyber768_avx2_##s
 #elif (KYBER_K == 4)
-#define KYBER_NAMESPACE(s) pqcrystals_mkyber1024_ref_##s
+#define KYBER_NAMESPACE(s) pqcrystals_kyber1024_avx2_##s
 #else
 #error "KYBER_K must be in {2,3,4}"
 #endif
@@ -43,7 +41,6 @@
 #endif
 
 #define KYBER_ETA2 2
-
 
 #define MKYBER_INDCPA_PUBLICKEYBYTES (KYBER_POLYVECBYTES+KYBER_SYMBYTES)
 #define MKYBER_INDCPA_SECRETKEYBYTES (KYBER_POLYVECBYTES+1)

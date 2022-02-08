@@ -1,0 +1,2 @@
+- indcpa_enc_c2: line 1 in indcpa.c: use pk to domain-separate noise generation.
+  don't pass coins to the function but derive coins from input message and public key.
