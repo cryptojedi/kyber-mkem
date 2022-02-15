@@ -32,8 +32,7 @@ int crypto_mkem_keypair(uint8_t *pk, uint8_t *sk, const uint8_t *seed)
 
   /* Copy public key into secret key */
   sk += MKYBER_INDCPA_SECRETKEYBYTES;
-  for(i=0;i<MKYBER_INDCPA_PUBLICKEYBYTES;i++)
-    sk[i] = pk[i];
+  memcpy(sk, pk, MKYBER_INDCPA_PUBLICKEYBYTES);
 
   /* Copy seed into secret key */
   sk += MKYBER_INDCPA_PUBLICKEYBYTES;
