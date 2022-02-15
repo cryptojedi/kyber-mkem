@@ -398,7 +398,6 @@ void poly_getnoise_eta2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t non
   poly_cbd_eta2(r, buf.vec);
 }
 
-#ifndef KYBER_90S
 #define NOISE_NBLOCKS ((KYBER_ETA1*KYBER_N/4+SHAKE256_RATE-1)/SHAKE256_RATE)
 void poly_getnoise_eta1_4x(poly *r0,
                            poly *r1,
@@ -434,7 +433,41 @@ void poly_getnoise_eta1_4x(poly *r0,
   poly_cbd_eta1(r3, buf[3].vec);
 }
 
-#if KYBER_K == 2
+#if (KYBER_K == 2 || KYBER_K == 4)
+void poly_getnoise_eta2_4x(poly *r0,
+                              poly *r1,
+                              poly *r2,
+                              poly *r3,
+                              const uint8_t seed[32],
+                              uint8_t nonce0,
+                              uint8_t nonce1,
+                              uint8_t nonce2,
+                              uint8_t nonce3)
+{
+  ALIGNED_UINT8(NOISE_NBLOCKS*SHAKE256_RATE) buf[4];
+  __m256i f;
+  keccakx4_state state;
+
+  f = _mm256_loadu_si256((__m256i *)seed);
+  _mm256_store_si256(buf[0].vec, f);
+  _mm256_store_si256(buf[1].vec, f);
+  _mm256_store_si256(buf[2].vec, f);
+  _mm256_store_si256(buf[3].vec, f);
+
+  buf[0].coeffs[32] = nonce0;
+  buf[1].coeffs[32] = nonce1;
+  buf[2].coeffs[32] = nonce2;
+  buf[3].coeffs[32] = nonce3;
+
+  shake256x4_absorb_once(&state, buf[0].coeffs, buf[1].coeffs, buf[2].coeffs, buf[3].coeffs, 33);
+  shake256x4_squeezeblocks(buf[0].coeffs, buf[1].coeffs, buf[2].coeffs, buf[3].coeffs, NOISE_NBLOCKS, &state);
+
+  poly_cbd_eta2(r0, buf[0].vec);
+  poly_cbd_eta2(r1, buf[1].vec);
+  poly_cbd_eta2(r2, buf[2].vec);
+  poly_cbd_eta2(r3, buf[3].vec);
+}
+#elif KYBER_K == 3
 void poly_getnoise_eta1122_4x(poly *r0,
                               poly *r1,
                               poly *r2,
@@ -468,7 +501,6 @@ void poly_getnoise_eta1122_4x(poly *r0,
   poly_cbd_eta2(r2, buf[2].vec);
   poly_cbd_eta2(r3, buf[3].vec);
 }
-#endif
 #endif
 
 /*************************************************

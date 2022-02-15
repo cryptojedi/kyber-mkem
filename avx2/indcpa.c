@@ -70,17 +70,22 @@ void indcpa_mkeypair(uint8_t pk[MKYBER_INDCPA_PUBLICKEYBYTES],
   unsigned int i;
   uint8_t noiseseed[KYBER_SYMBYTES+1]; /* Additional byte to set random order of public keys */
   uint8_t fakepkseed[KYBER_SYMBYTES];
-  uint8_t nonce = 0;
   polyvec a[KYBER_K], e, pkpv, fakepkpv, skpv;
 
   randombytes(noiseseed, KYBER_SYMBYTES+1);
 
   gen_a(a, publicseed);
 
-  for(i=0;i<KYBER_K;i++)
-    poly_getnoise_eta1(&skpv.vec[i], noiseseed, nonce++);
-  for(i=0;i<KYBER_K;i++)
-    poly_getnoise_eta1(&e.vec[i], noiseseed, nonce++);
+#if KYBER_K == 2
+  poly_getnoise_eta1_4x(skpv.vec+0, skpv.vec+1, e.vec+0, e.vec+1, noiseseed, 0, 1, 2, 3);
+#elif KYBER_K == 3
+  poly_getnoise_eta1_4x(skpv.vec+0, skpv.vec+1, skpv.vec+2, e.vec+0, noiseseed, 0, 1, 2, 3);
+  poly_getnoise_eta1_4x(e.vec+1, e.vec+2, pkpv.vec+0, pkpv.vec+1, noiseseed, 4, 5, 6, 7);
+#elif KYBER_K == 4
+  poly_getnoise_eta1_4x(skpv.vec+0, skpv.vec+1, skpv.vec+2, skpv.vec+3, noiseseed,  0, 1, 2, 3);
+  poly_getnoise_eta1_4x(e.vec+0, e.vec+1, e.vec+2, e.vec+3, noiseseed, 4, 5, 6, 7);
+#endif
+
 
   polyvec_ntt(&skpv);
   polyvec_reduce(&skpv);
@@ -134,20 +139,24 @@ void indcpa_enc_c1(uint8_t c1[MKYBER_C1BYTES],
                    const uint8_t coins[KYBER_SYMBYTES])
 {
   unsigned int i;
-  uint8_t nonce = 0;
   polyvec sp0, sp1, ep0, ep1, at[KYBER_K], b0, b1;
   uint8_t tbuf[KYBER_POLYVECCOMPRESSEDBYTES+2];
 
   gen_at(at, seed);
 
-  for(i=0;i<KYBER_K;i++)
-    poly_getnoise_eta1(sp0.vec+i, coins, nonce++);
-  for(i=0;i<KYBER_K;i++)
-    poly_getnoise_eta1(sp1.vec+i, coins, nonce++);
-  for(i=0;i<KYBER_K;i++)
-    poly_getnoise_eta2(ep0.vec+i, coins, nonce++);
-  for(i=0;i<KYBER_K;i++)
-    poly_getnoise_eta2(ep1.vec+i, coins, nonce++);
+  #if KYBER_K == 2
+  poly_getnoise_eta1_4x(sp0.vec+0, sp0.vec+1, sp1.vec+0, sp1.vec+1, coins,  0, 1, 2, 3);
+  poly_getnoise_eta2_4x(ep0.vec+0, ep0.vec+1, ep1.vec+0, ep1.vec+1, coins,  4, 5, 6, 7);
+  #elif KYBER_K == 3
+  poly_getnoise_eta1_4x(sp0.vec+0, sp0.vec+1, sp0.vec+2, sp1.vec+0, coins,  0, 1, 2, 3);
+  poly_getnoise_eta1122_4x(sp1.vec+1, sp1.vec+2, ep0.vec+0, ep0.vec+1, coins,  4, 5, 6, 7);
+  poly_getnoise_eta1_4x(ep0.vec+2, ep1.vec+0, ep1.vec+1, ep1.vec+2, coins,  8, 9, 10, 11);
+  #elif KYBER_K == 4
+  poly_getnoise_eta1_4x(sp0.vec+0, sp0.vec+1, sp0.vec+2, sp0.vec+3, coins,  0, 1, 2, 3);
+  poly_getnoise_eta1_4x(sp1.vec+0, sp1.vec+1, sp1.vec+2, sp1.vec+3, coins,  4, 5, 6, 7);
+  poly_getnoise_eta2_4x(ep0.vec+0, ep0.vec+1, ep0.vec+2, ep0.vec+3, coins,  8, 9, 10, 11);
+  poly_getnoise_eta2_4x(ep1.vec+0, ep1.vec+1, ep1.vec+2, ep1.vec+3, coins,  12, 13, 14, 15);
+  #endif
 
   polyvec_ntt(&sp0);
   polyvec_ntt(&sp1);
