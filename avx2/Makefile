@@ -86,8 +86,10 @@ clean:
 	-$(RM) -rf test_mkyber512
 	-$(RM) -rf test_mkyber768
 	-$(RM) -rf test_mkyber1024
+	-$(RM) -rf bench_mkyber512
+	-$(RM) -rf bench_mkyber768
+	-$(RM) -rf bench_mkyber1024
 	-$(RM) -rf testvectors512
 	-$(RM) -rf testvectors768
 	-$(RM) -rf testvectors1024
-	-$(RM) -rf keccak4x/KeccakP-1600-times4-SIMD256.o
-	-$(RM) -rf keccak4x/KeccakP-1600-times4-SIMD256-bench.o
+	-$(RM) -rf keccak4x/*.o
