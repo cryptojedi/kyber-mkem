@@ -5,8 +5,8 @@
 These instructions are assuming a typical Linux build environment with clang and GNU make installed):
 
 ```
-cd ref && make && test.sh
-cd ../avx2 && make && test.sh
+cd ref && make && ./test.sh
+cd ../avx2 && make && ./test.sh
 ```
 
 This will build and run functional tests and generate and compare test vectors
