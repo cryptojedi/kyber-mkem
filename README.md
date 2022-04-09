@@ -11,11 +11,9 @@ This repository contains a reference implementation in C (derived from the Kyber
 and an optimized implementation targeting 64-bit Intel and AMD CPUs featuring the AVX2 vector instruction set (derived from the Kyber AVX2 implementation).
 
 The most notable changes between the original Kyber implementation and the Kyber-mKEM implementation
-here are in the file `mkem.c`, which replaces the file `kem.c` in the Kyber implementation,
+here are in the file `mkem.c`, which replaces the file `kem.c` from the Kyber implementation,
 and in the file `indcpa.c`, which implements the underlying IND-CPA secure public-key encryption.
-
-Most notably, in `mkem.c` and `mkem.h` we introduce two APIs to implement the mKEM functionality
-outlined in the following.
+Most notably, in `mkem.c` and `mkem.h` we introduce an API to implement the mKEM functionality.
 
 The `crypto_mkem_keypair` function is given a public `seed` of length `KYBER_SYMBYTES` bytes 
 and computes a secret key `sk` of length `MKYBER_SECRETKEYBYTES` 
@@ -27,7 +25,7 @@ int crypto_mkem_keypair(uint8_t *pk,
                         const uint8_t *seed);
 ```
 
-Encapsulation to N recipients receives as input an array of pointers to public keys `pk`;
+Encapsulation to `num_keys` recipients receives as input an array of pointers to public keys `pk`;
 each of those public keys needs to be of length `MKYBER_PUBLICKEYBYTES`. It additionally
 receives the length of this array in the argument `num_keys` and the `seed` of `KYBER_SYMBYTES`.
 This seed *has to be the same as the one used for in all keypair computations that computed
@@ -78,6 +76,9 @@ int crypto_mkem_enc_c2(uint8_t *c2,
                        const uint8_t *fwd);
 ```
 
+## Example usage
+
+For an example of how to use the API functions, see the `test_keys` function in file `ref/test_mkyber.c`.
 
 ## Build instructions 
 
