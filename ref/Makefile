@@ -13,6 +13,9 @@ all: \
   test_mkyber512 \
   test_mkyber768 \
   test_mkyber1024 \
+  bench_mkyber512 \
+  bench_mkyber768 \
+  bench_mkyber1024 \
   testvectors512 \
   testvectors768 \
   testvectors1024
@@ -26,6 +29,15 @@ test_mkyber768: $(SOURCES) $(HEADERS) test_mkyber.c randombytes.c
 
 test_mkyber1024: $(SOURCES) $(HEADERS) test_mkyber.c randombytes.c
 	$(CC) $(CFLAGS) -DKYBER_K=4 $(SOURCES) randombytes.c test_mkyber.c -o $@
+
+bench_mkyber512: $(SOURCES) $(HEADERS) bench_mkyber.c randombytes.c
+	$(CC) $(CFLAGS) -DKYBER_K=2 $(SOURCES) randombytes.c bench_mkyber.c -o $@
+
+bench_mkyber768: $(SOURCES) $(HEADERS) bench_mkyber.c randombytes.c
+	$(CC) $(CFLAGS) -DKYBER_K=3 $(SOURCES) randombytes.c bench_mkyber.c -o $@
+
+bench_mkyber1024: $(SOURCES) $(HEADERS) bench_mkyber.c randombytes.c
+	$(CC) $(CFLAGS) -DKYBER_K=4 $(SOURCES) randombytes.c bench_mkyber.c -o $@
 
 testvectors512: $(SOURCES) $(HEADERS) testvectors.c
 	$(CC) $(CFLAGS) -DKYBER_K=2 $(SOURCES) testvectors.c -o $@

@@ -84,7 +84,7 @@ static void print_bench(char *s, int n, int k, uint64_t *t,size_t tlen)
       printf("M");
       break;
   }
-  printf("}{$%lu$}\n",median(t, tlen));
+  printf("avx}{$%lu$}\n",median(t, tlen));
 }
 
 static void run_bench(void)
@@ -167,65 +167,65 @@ static void run_bench(void)
   }
 
 #if KYBER_K == 2
-  printf("\\newcommand{\\mpkbyteslowone}{$%u$}\n", MKYBER_PUBLICKEYBYTES);
-  printf("\\newcommand{\\mctbyteslowone}{$%u$}\n", MKYBER_C1BYTES+MKYBER_C2BYTES);
-  printf("\\newcommand{\\mtotbyteslowone}{$%u$}\n", MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+MKYBER_C2BYTES);
+  printf("\\newcommand{\\mpkbyteslowoneavx}{$%u$}\n", MKYBER_PUBLICKEYBYTES);
+  printf("\\newcommand{\\mctbyteslowoneavx}{$%u$}\n", MKYBER_C1BYTES+MKYBER_C2BYTES);
+  printf("\\newcommand{\\mtotbyteslowoneavx}{$%u$}\n", MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+MKYBER_C2BYTES);
   
-  printf("\\newcommand{\\mpkbyteslowtwo}{$%u$}\n", 2*MKYBER_PUBLICKEYBYTES);
-  printf("\\newcommand{\\mctbyteslowtwo}{$%u$}\n", MKYBER_C1BYTES+2*MKYBER_C2BYTES);
-  printf("\\newcommand{\\mtotbyteslowtwo}{$%u$}\n", 2*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+2*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mpkbyteslowtwoavx}{$%u$}\n", 2*MKYBER_PUBLICKEYBYTES);
+  printf("\\newcommand{\\mctbyteslowtwoavx}{$%u$}\n", MKYBER_C1BYTES+2*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mtotbyteslowtwoavx}{$%u$}\n", 2*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+2*MKYBER_C2BYTES);
 
-  printf("\\newcommand{\\mpkbyteslowX}{$%u$}\n", 10*MKYBER_PUBLICKEYBYTES);
-  printf("\\newcommand{\\mctbyteslowX}{$%u$}\n", MKYBER_C1BYTES+10*MKYBER_C2BYTES);
-  printf("\\newcommand{\\mtotbyteslowX}{$%u$}\n", 10*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+10*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mpkbyteslowXavx}{$%u$}\n", 10*MKYBER_PUBLICKEYBYTES);
+  printf("\\newcommand{\\mctbyteslowXavx}{$%u$}\n", MKYBER_C1BYTES+10*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mtotbyteslowXavx}{$%u$}\n", 10*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+10*MKYBER_C2BYTES);
   
-  printf("\\newcommand{\\mpkbyteslowC}{$%u$}\n", 100*MKYBER_PUBLICKEYBYTES);
-  printf("\\newcommand{\\mctbyteslowC}{$%u$}\n", MKYBER_C1BYTES+100*MKYBER_C2BYTES);
-  printf("\\newcommand{\\mtotbyteslowC}{$%u$}\n", 100*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+100*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mpkbyteslowCavx}{$%u$}\n", 100*MKYBER_PUBLICKEYBYTES);
+  printf("\\newcommand{\\mctbyteslowCavx}{$%u$}\n", MKYBER_C1BYTES+100*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mtotbyteslowCavx}{$%u$}\n", 100*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+100*MKYBER_C2BYTES);
 
-  printf("\\newcommand{\\mpkbyteslowM}{$%u$}\n", 1000*MKYBER_PUBLICKEYBYTES);
-  printf("\\newcommand{\\mctbyteslowM}{$%u$}\n", MKYBER_C1BYTES+1000*MKYBER_C2BYTES);
-  printf("\\newcommand{\\mtotbyteslowM}{$%u$}\n", 1000*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+1000*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mpkbyteslowMavx}{$%u$}\n", 1000*MKYBER_PUBLICKEYBYTES);
+  printf("\\newcommand{\\mctbyteslowMavx}{$%u$}\n", MKYBER_C1BYTES+1000*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mtotbyteslowMavx}{$%u$}\n", 1000*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+1000*MKYBER_C2BYTES);
 #elif KYBER_K == 3
-  printf("\\newcommand{\\mpkbytesmidone}{$%u$}\n", MKYBER_PUBLICKEYBYTES);
-  printf("\\newcommand{\\mctbytesmidone}{$%u$}\n", MKYBER_C1BYTES+MKYBER_C2BYTES);
-  printf("\\newcommand{\\mtotbytesmidone}{$%u$}\n", MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+MKYBER_C2BYTES);
+  printf("\\newcommand{\\mpkbytesmidoneavx}{$%u$}\n", MKYBER_PUBLICKEYBYTES);
+  printf("\\newcommand{\\mctbytesmidoneavx}{$%u$}\n", MKYBER_C1BYTES+MKYBER_C2BYTES);
+  printf("\\newcommand{\\mtotbytesmidoneavx}{$%u$}\n", MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+MKYBER_C2BYTES);
   
-  printf("\\newcommand{\\mpkbytesmidtwo}{$%u$}\n", 2*MKYBER_PUBLICKEYBYTES);
-  printf("\\newcommand{\\mctbytesmidtwo}{$%u$}\n", MKYBER_C1BYTES+2*MKYBER_C2BYTES);
-  printf("\\newcommand{\\mtotbytesmidtwo}{$%u$}\n", 2*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+2*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mpkbytesmidtwoavx}{$%u$}\n", 2*MKYBER_PUBLICKEYBYTES);
+  printf("\\newcommand{\\mctbytesmidtwoavx}{$%u$}\n", MKYBER_C1BYTES+2*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mtotbytesmidtwoavx}{$%u$}\n", 2*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+2*MKYBER_C2BYTES);
 
-  printf("\\newcommand{\\mpkbytesmidX}{$%u$}\n", 10*MKYBER_PUBLICKEYBYTES);
-  printf("\\newcommand{\\mctbytesmidX}{$%u$}\n", MKYBER_C1BYTES+10*MKYBER_C2BYTES);
-  printf("\\newcommand{\\mtotbytesmidX}{$%u$}\n", 10*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+10*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mpkbytesmidXavx}{$%u$}\n", 10*MKYBER_PUBLICKEYBYTES);
+  printf("\\newcommand{\\mctbytesmidXavx}{$%u$}\n", MKYBER_C1BYTES+10*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mtotbytesmidXavx}{$%u$}\n", 10*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+10*MKYBER_C2BYTES);
   
-  printf("\\newcommand{\\mpkbytesmidC}{$%u$}\n", 100*MKYBER_PUBLICKEYBYTES);
-  printf("\\newcommand{\\mctbytesmidC}{$%u$}\n", MKYBER_C1BYTES+100*MKYBER_C2BYTES);
-  printf("\\newcommand{\\mtotbytesmidC}{$%u$}\n", 100*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+100*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mpkbytesmidCavx}{$%u$}\n", 100*MKYBER_PUBLICKEYBYTES);
+  printf("\\newcommand{\\mctbytesmidCavx}{$%u$}\n", MKYBER_C1BYTES+100*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mtotbytesmidCavx}{$%u$}\n", 100*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+100*MKYBER_C2BYTES);
 
-  printf("\\newcommand{\\mpkbytesmidM}{$%u$}\n", 1000*MKYBER_PUBLICKEYBYTES);
-  printf("\\newcommand{\\mctbytesmidM}{$%u$}\n", MKYBER_C1BYTES+1000*MKYBER_C2BYTES);
-  printf("\\newcommand{\\mtotbytesmidM}{$%u$}\n", 1000*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+1000*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mpkbytesmidMavx}{$%u$}\n", 1000*MKYBER_PUBLICKEYBYTES);
+  printf("\\newcommand{\\mctbytesmidMavx}{$%u$}\n", MKYBER_C1BYTES+1000*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mtotbytesmidMavx}{$%u$}\n", 1000*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+1000*MKYBER_C2BYTES);
 #elif KYBER_K == 4
-  printf("\\newcommand{\\mpkbyteshighone}{$%u$}\n", MKYBER_PUBLICKEYBYTES);
-  printf("\\newcommand{\\mctbyteshighone}{$%u$}\n", MKYBER_C1BYTES+MKYBER_C2BYTES);
-  printf("\\newcommand{\\mtotbyteshighone}{$%u$}\n", MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+MKYBER_C2BYTES);
+  printf("\\newcommand{\\mpkbyteshighoneavx}{$%u$}\n", MKYBER_PUBLICKEYBYTES);
+  printf("\\newcommand{\\mctbyteshighoneavx}{$%u$}\n", MKYBER_C1BYTES+MKYBER_C2BYTES);
+  printf("\\newcommand{\\mtotbyteshighoneavx}{$%u$}\n", MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+MKYBER_C2BYTES);
   
-  printf("\\newcommand{\\mpkbyteshightwo}{$%u$}\n", 2*MKYBER_PUBLICKEYBYTES);
-  printf("\\newcommand{\\mctbyteshightwo}{$%u$}\n", MKYBER_C1BYTES+2*MKYBER_C2BYTES);
-  printf("\\newcommand{\\mtotbyteshightwo}{$%u$}\n", 2*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+2*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mpkbyteshightwoavx}{$%u$}\n", 2*MKYBER_PUBLICKEYBYTES);
+  printf("\\newcommand{\\mctbyteshightwoavx}{$%u$}\n", MKYBER_C1BYTES+2*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mtotbyteshightwoavx}{$%u$}\n", 2*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+2*MKYBER_C2BYTES);
 
-  printf("\\newcommand{\\mpkbyteshighX}{$%u$}\n", 10*MKYBER_PUBLICKEYBYTES);
-  printf("\\newcommand{\\mctbyteshighX}{$%u$}\n", MKYBER_C1BYTES+10*MKYBER_C2BYTES);
-  printf("\\newcommand{\\mtotbyteshighX}{$%u$}\n", 10*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+10*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mpkbyteshighXavx}{$%u$}\n", 10*MKYBER_PUBLICKEYBYTES);
+  printf("\\newcommand{\\mctbyteshighXavx}{$%u$}\n", MKYBER_C1BYTES+10*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mtotbyteshighXavx}{$%u$}\n", 10*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+10*MKYBER_C2BYTES);
   
-  printf("\\newcommand{\\mpkbyteshighC}{$%u$}\n", 100*MKYBER_PUBLICKEYBYTES);
-  printf("\\newcommand{\\mctbyteshighC}{$%u$}\n", MKYBER_C1BYTES+100*MKYBER_C2BYTES);
-  printf("\\newcommand{\\mtotbyteshighC}{$%u$}\n", 100*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+100*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mpkbyteshighCavx}{$%u$}\n", 100*MKYBER_PUBLICKEYBYTES);
+  printf("\\newcommand{\\mctbyteshighCavx}{$%u$}\n", MKYBER_C1BYTES+100*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mtotbyteshighCavx}{$%u$}\n", 100*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+100*MKYBER_C2BYTES);
 
-  printf("\\newcommand{\\mpkbyteshighM}{$%u$}\n", 1000*MKYBER_PUBLICKEYBYTES);
-  printf("\\newcommand{\\mctbyteshighM}{$%u$}\n", MKYBER_C1BYTES+1000*MKYBER_C2BYTES);
-  printf("\\newcommand{\\mtotbyteshighM}{$%u$}\n", 1000*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+1000*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mpkbyteshighMavx}{$%u$}\n", 1000*MKYBER_PUBLICKEYBYTES);
+  printf("\\newcommand{\\mctbyteshighMavx}{$%u$}\n", MKYBER_C1BYTES+1000*MKYBER_C2BYTES);
+  printf("\\newcommand{\\mtotbyteshighMavx}{$%u$}\n", 1000*MKYBER_PUBLICKEYBYTES+MKYBER_C1BYTES+1000*MKYBER_C2BYTES);
 #endif
 }
 
